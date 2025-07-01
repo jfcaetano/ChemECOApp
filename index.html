@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EcoTox Predictor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      max-width: 650px;
+      margin: auto;
+      background-color: #f9f9f9;
+    }
+
+    h2 {
+      text-align: center;
+      color: #007acc;
+      margin-bottom: 2rem;
+    }
+
+    label {
+      display: block;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      margin-bottom: 1.5rem;
+    }
+
+    button {
+      background-color: #007acc;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #005f99;
+    }
+
+    .result {
+      margin-top: 2rem;
+      padding: 1.2rem;
+      border-radius: 5px;
+      background: #e0f7fa;
+      color: #004d40;
+      font-weight: bold;
+    }
+
+    .error {
+      background: #ffebee;
+      color: #b71c1c;
+    }
+
+    .loading {
+      font-style: italic;
+      color: #666;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>ChemEco Environmental Price Predictor</h2>
+
+  <label for="smiles">SMILES String</label>
+  <input type="text" id="smiles" placeholder="e.g. CC(=O)OC1=CC=CC=C1C(=O)O">
+
+  <label for="kingdom">Kingdom</label>
+  <select id="kingdom">
+    <option>Organic compounds</option>
+    <option>Inorganic compounds</option>
+    <option>Other</option>
+  </select>
+
+  <label for="superclass">Superclass</label>
+  <select id="superclass">
+    <option>Organic acids and derivatives</option>
+    <option>Mixed metal/non-metal compounds</option>
+    <option>Benzenoids</option>
+    <option>Organoheterocyclic compounds</option>
+    <option>Organometallic compounds</option>
+    <option>Organic nitrogen compounds</option>
+    <option>Homogeneous non-metal compounds</option>
+    <option>Homogeneous metal compounds</option>
+    <option>Organic oxygen compounds</option>
+    <option>Organosulfur compounds</option>
+    <option>Organic 1,3-dipolar compounds</option>
+    <option>Organohalogen compounds</option>
+    <option>Organic salts</option>
+    <option>Hydrocarbons</option>
+    <option>Other</option>
+  </select>
+
+  <button onclick="submitForm()">Predict</button>
+
+  <div class="result" id="result">Waiting for input...</div>
+
+  <div class="footer">
+    Code and model built by <strong>jfcaetano</strong>, property of <strong>HOLOSS © 2025</strong>
+  </div>
+
+  <script>
+    async function submitForm() {
+      const resultDiv = document.getElementById("result");
+      resultDiv.className = "result loading";
+      resultDiv.textContent = "Predicting...";
+
+      const smiles = document.getElementById("smiles").value.trim();
+      if (!smiles) {
+        resultDiv.className = "result error";
+        resultDiv.textContent = "Please enter a SMILES string.";
+        return;
+      }
+
+      const data = {
+        smiles,
+        kingdom: document.getElementById("kingdom").value,
+        superclass: document.getElementById("superclass").value,
+        clazz: "Other"
+      };
+
+      try {
+        const response = await fetch("https://ecotoxapp.onrender.com/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          resultDiv.className = "result";
+          resultDiv.innerHTML = `
+            <strong>Predicted Environmental Price (€/kg):</strong><br>
+            • Lower: ${result.Lower}<br>
+            • Median: ${result.Median}<br>
+            • Upper: ${result.Upper}
+          `;
+        } else {
+          const text = await response.text();
+          resultDiv.className = "result error";
+
+          if (text.includes("Invalid SMILES")) {
+            resultDiv.textContent = "ERROR: Invalid SMILES String.";
+          } else {
+            resultDiv.innerHTML = `<strong>Error ${response.status}:</strong> ${text}`;
+          }
+        }
+      } catch (err) {
+        resultDiv.className = "result error";
+        resultDiv.textContent = "Network error. Please try again later.";
+        console.error(err);
+      }
+    }
+  </script>
+
+</body>
+</html>
